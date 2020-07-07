@@ -234,10 +234,10 @@ async function getUserMedia(transport, type) {
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
         break;
       case "btn_audio":
-        $txtPublish = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         break;
       case "btn_screen":
-        $txtPublish = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         break;
       default:
         break;
