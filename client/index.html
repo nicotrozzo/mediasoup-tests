@@ -39,11 +39,12 @@
     <tr>
       <td>
         <div>Local</div>
+        <p id="local_audio"> </p>
         <video id="local_video" controls autoplay playsinline></video>
       </td>
       <td>
         <div>Remote</div>
-        <video id="remote_video" controls autoplay playsinline></video>
+        <audio id="remote_audio">
       </td>
     </tr>
   </table>
@@ -60,6 +61,10 @@
         <fieldset id="fs_publish" disabled>
           <legend>Publishing</legend>
           <div><label><input type="checkbox" id="chk_simulcast"> Use Simulcast</label></div>
+          <div>
+            <button id="btn_audio">Start Audio</button>
+            <span id="audio_status"></span>
+          </div>
           <div>
             <button id="btn_webcam">Start Webcam</button>
             <span id="webcam_status"></span>
