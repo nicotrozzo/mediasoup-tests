@@ -151,6 +151,7 @@ async function publish(e) {
         $txtPublish.innerHTML = 'publishing...';
         $fsPublish.disabled = true;
         $fsSubscribe.disabled = true;
+        console.log("publishing...");
       break;
 
       case 'connected':
@@ -170,6 +171,7 @@ async function publish(e) {
         $txtPublish.innerHTML = 'failed';
         $fsPublish.disabled = false;
         $fsSubscribe.disabled = true;
+        console.log("failed");
       break;
 
       default: break;
