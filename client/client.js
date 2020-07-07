@@ -14,6 +14,8 @@ let socket;
 // Cada client tiene 1 producer por stream (audio, video, screen sharing)
 let producer;
 
+let streamType;
+
 const $ = document.querySelector.bind(document);
 const $fsPublish = $('#fs_publish');
 const $fsSubscribe = $('#fs_subscribe');
@@ -98,7 +100,8 @@ async function loadDevice(routerRtpCapabilities) {
 
 async function publish(e) {
 
-  const streamType = e.target.id;
+  console.log("publish: ");
+  streamType = e.target.id;
   switch (streamType) {
     case "btn_webcam":
       $txtPublish = $txtWebcam;
@@ -112,20 +115,29 @@ async function publish(e) {
     default:
       break;
   }
+  console.log("streamType: " + streamType);
 
   // Crea transport remoto para el producer
   const data = await socket.request('createProducerTransport', {
     forceTcp: false,
     rtpCapabilities: device.rtpCapabilities,
   });
+
+  console.log("server created producer transport. Data: ", data);
+
   if (data.error) {
     console.error(data.error);
     return;
   }
 
+  console.log("about to create send transport");
   // Crea transport local y lo conecta al remoto
   const transport = device.createSendTransport(data);
+
+  console.log("created send transport");
+
   transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+    console.log("sendTransport onconnect");
     socket.request('connectProducerTransport', { dtlsParameters })
       .then(callback)
       .catch(errback);
@@ -133,6 +145,7 @@ async function publish(e) {
 
   // Al crear el producer local le dice al remoto que cree el producer correspondiente
   transport.on('produce', async ({ kind, rtpParameters }, callback, errback) => {
+    console.log("sendTransport onproduce. Kind: ", kind);
     try {
       const { id } = await socket.request('produce', {
         transportId: transport.id,
@@ -155,7 +168,7 @@ async function publish(e) {
       break;
 
       case 'connected':
-        if( streamType === "btn_audio") {
+        if(streamType === "btn_audio") {
           document.querySelector('#local_audio').textContent = "Ya publique el stream de audio papi";
         }
         else {
@@ -168,7 +181,7 @@ async function publish(e) {
 
       case 'failed':
         transport.close();
-        $txtPublish.innerHTML = 'failed';
+        $txtPublish.innerHTML = 'failed transporting';
         $fsPublish.disabled = false;
         $fsSubscribe.disabled = true;
         console.log("failed");
@@ -180,17 +193,25 @@ async function publish(e) {
 
   let stream;
   try {
+    let track = null;
+    console.log("about to getUserMedia");
     stream = await getUserMedia(transport, streamType);
+    console.log("gotUserMedia");
     if(streamType === "btn_audio") {
-      const track = stream.getAudioTracks()[0];
+      console.log("about to getAudioTracks");
+      track = stream.getAudioTracks()[0];
     }
     else {
-      const track = stream.getVideoTracks()[0];
+      console.log("about to getVideoTracks");
+      track = stream.getVideoTracks()[0];
     }
+    console.log("Got track: ", track, "about to produce");
     const params = { track };
     producer = await transport.produce(params);
+    console.log("got producer!");
   } catch (err) {
-    $txtPublish.innerHTML = 'failed';
+    $txtPublish.innerHTML = 'failed getting user media';
+    console.log(err);
   }
 }
 
@@ -255,7 +276,8 @@ async function subscribe() {
         break;
 
       case 'connected':
-        if( streamType === "btn_audio") {
+        if(streamType === "btn_audio") {
+          console.log("aca se cga todo perroooo");
           document.querySelector('#remote_audio').srcObject = await stream;
         }
         else {
