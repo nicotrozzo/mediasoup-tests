@@ -277,7 +277,7 @@ async function subscribe() {
 
       case 'connected':
         if(streamType === "btn_audio") {
-          console.log("aca se cga todo perroooo");
+          console.log("aca se caga todo perroooo");
           document.querySelector('#remote_audio').srcObject = await stream;
         }
         else {
