@@ -1,0 +1,10 @@
+EXPRESS
+Para que usa express.json()?
+
+WEBSERVER
+Certificados ni idea, estoy copiando y pegando los archivos. ¿Por que chrome me dice que la conexion no es segura?
+Que hace exactamente lo de la Promise en runWebServer
+
+MEDIASOUP
+Por que pone "paused: producer.kind === 'video'" al crear el consumer? Cambiando esa linea no pasa nada 
+
