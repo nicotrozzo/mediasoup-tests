@@ -115,7 +115,6 @@ async function runWebServer() {
   });
 }
 
-
 async function runSocketServer() {
   socketServer = socketIO(webServer, {
     serveClient: false,
@@ -145,7 +144,7 @@ async function runSocketServer() {
     });
 
     /**
-     * Create Participant:
+     * Create Participant
      * Se crea un nuevo participante de la reunion con sus correspondientes webRTCtransports
      * para producir y consumir streams
      * @param data: 
@@ -162,7 +161,7 @@ async function runSocketServer() {
     });
 
     /**
-     * Connect Transports:
+     * Connect Transports
      * Conecta los transports remotos de un Participant con los del server
      * @param data: 
     */
@@ -173,24 +172,46 @@ async function runSocketServer() {
 
     /**
     *  Produce
-    * 
+    *  Crea un Producer de mediaSoup del participant que lo solicita y le informa al resto de los
+    *  participantes 
+    *  @param data: 
+    *   @field kind: indica el tipo de stream, audio o video
+    *   @field rtpParameters: del stream remoto
+    *   @field participantId: id de participante que produce el stream
+    *  @answer { id }: id del producer creado
     */
     socket.on('produce', async (data, callback) => {
-      // kind indica el tipo de comunicacion, audio o video
-      const {kind, rtpParameters} = data;
-      producer = await producerTransport.produce({ kind, rtpParameters });
-      callback({ id: producer.id });
+      // crea el producer y responde con su id
+      producerId = await createProducer(data);
+      callback( { id: producerId } );
 
-      // inform clients about new producer
-      socket.broadcast.emit('newProducer');
+      // le avisa a los demas participantes que hay un nuevo stream
+      socket.broadcast.emit('newProducer', { id: producerId } );
     });
 
+    /**
+     *  Consume
+     *  Crea un Consumer de mediasoup del participant que lo solicita
+     *  @param data:
+     *    @field rtpCapabilities: del device remoto
+     *    @field producerId: del producer solicitado
+     *  @answer {
+     *    id: del consumer creado
+     *    kind: del stream obtenido
+     *    rtpParameters: del producer cuyo stream se esta consumiendo
+     *  }
+     */
     socket.on('consume', async (data, callback) => {
-      callback(await createConsumer(producer, data.rtpCapabilities));
+      callback(await createConsumer(data));
     });
 
+    /**
+     * Resume
+     * Reanuda el streaming del ??????
+     */
     socket.on('resume', async (data, callback) => {
-      await consumer.resume();
+      // ??????
+      // await consumer.resume();
       callback();
     });
   });
@@ -210,6 +231,12 @@ async function createParticipant(data) {
 async function connectTransports(data) {
   await producerTransport.connect({ dtlsParameters: data.dtlsParameters });
   await consumerTransport.connect({ dtlsParameters: data.dtlsParameters });
+}
+
+
+async function createProducer(data) {
+
+  return producerId;
 }
 
 async function runMediasoupWorker() {

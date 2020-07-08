@@ -11,7 +11,7 @@ consume -> Se fija si el router puede consumir del producer que tiene. Si puede,
 resume -> resumea el stream del consumer
 
 EVENTOS QUE EMITE
-newProducer
+newProducer -> avisa que hay un nuevo producer, manda su id en el campo de datos
 
 client.js
 
