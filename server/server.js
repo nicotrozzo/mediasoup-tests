@@ -147,13 +147,19 @@ async function runSocketServer() {
      * Create Participant
      * Se crea un nuevo participante de la reunion con sus correspondientes webRTCtransports
      * para producir y consumir streams
-     * @param data: 
+     * @param data:
+     *    @field displayName: String
+     *    @field rtpCapabilities: RTCRtpCapabilities
+     * @answer { id } 
     */
     socket.on('createParticipant', async (data, callback) => {
       try {
         const { pId, participant, params } = await createParticipant(data);
         participants.set(pId, participant);
         callback(params);
+        
+        // Le avisa a los demas participantes que se unio uno nuevo y proporciona su informacion
+        socket.broadcast.emit('newParticipant', data);
       } catch (err) {
         console.error(err);
         callback({ error: err.message });
@@ -164,7 +170,10 @@ async function runSocketServer() {
      * Connect Transports
      * Conecta los transports remotos de un Participant con los del server
      * @param data: 
-    */
+     *   @field participantId: id de participante
+     *   @field prodDtlsParameters:
+     *   @field 
+     */
     socket.on('connectTransports', async (data, callback) => {
       await connectTransports(data);
       callback();
@@ -193,7 +202,7 @@ async function runSocketServer() {
      *  Consume
      *  Crea un Consumer de mediasoup del participant que lo solicita
      *  @param data:
-     *    @field rtpCapabilities: del device remoto
+     *    @field participantId: string
      *    @field producerId: del producer solicitado
      *  @answer {
      *    id: del consumer creado
@@ -229,6 +238,7 @@ async function createParticipant(data) {
 }
 
 async function connectTransports(data) {
+  
   await producerTransport.connect({ dtlsParameters: data.dtlsParameters });
   await consumerTransport.connect({ dtlsParameters: data.dtlsParameters });
 }
