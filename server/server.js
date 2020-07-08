@@ -22,14 +22,16 @@ let expressApp;
   Vamos a tener tantos producers como streams nos pasen los clients 
   Si tenemos n clients y cada client nos pasa audio y video, tenemos 2n producers
 */
-let producer;
+let micProducer;
+let videoProducer;
 
 /*
   Vamos a tener tantos consumers como streams nos pidan los clients
   Si tenemos m producers y los consumen los n clients, tenemos
   m*n consumers. Si el client no quiere lo que produce, tenemos m*n - n*(1 o 2)
 */  
-let consumer;
+let micConsumer;
+let videoConsumer;
 
 // Vamos a tener 1 producer transport por client (n)
 let producerTransport;
@@ -51,6 +53,7 @@ let mediasoupRouter;
       await runSocketServer();
       // Una vez listo todo, instanciamos mediasoup
       await runMediasoupWorker();
+  
     } catch (err) {
       console.error(err);
     }

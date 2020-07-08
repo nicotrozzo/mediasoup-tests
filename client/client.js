@@ -12,7 +12,8 @@ let device;
 let socket;
 
 // Cada client tiene 1 producer por stream (audio, video, screen sharing)
-let producer;
+let micProducer;
+let videoProducer;
 
 let streamType;
 
@@ -200,15 +201,19 @@ async function publish(e) {
     if(streamType === "btn_audio") {
       console.log("about to getAudioTracks");
       track = stream.getAudioTracks()[0];
+      console.log("Got track: ", track, "about to produce");
+      const params = { track };
+      producer = await transport.produce(params);
+      console.log("got producer!");
     }
     else {
       console.log("about to getVideoTracks");
       track = stream.getVideoTracks()[0];
+      console.log("Got track: ", track, "about to produce");
+      const params = { track };
+      producer = await transport.produce(params);
+      console.log("got producer!");
     }
-    console.log("Got track: ", track, "about to produce");
-    const params = { track };
-    producer = await transport.produce(params);
-    console.log("got producer!");
   } catch (err) {
     $txtPublish.innerHTML = 'failed getting user media';
     console.log(err);
@@ -231,10 +236,7 @@ async function getUserMedia(transport, type) {
   try {
     switch (type) {
       case "btn_webcam":
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        break;
-      case "btn_audio":
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         break;
       case "btn_screen":
         stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
