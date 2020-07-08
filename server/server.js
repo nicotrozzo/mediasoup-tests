@@ -8,6 +8,39 @@ const config = require('./config');
 // Global variables
 // Worker de mediasoup
 let worker;
+// worker de mediasoup
+let mediasoupRouter;
+
+/*
+  Router:
+  Vamos a tener (excepto que pasen cosas malas) un router por llamada
+
+  Transports:
+  Vamos a tener 1 producer transport por client (n)
+  Vamos a tener 1 consumer transport por client (n)
+
+  Producers:
+  Vamos a tener tantos producers como streams nos pasen los clients 
+  Si tenemos n clients y cada client nos pasa audio y video, tenemos 2n producers
+
+  Consumers:
+  Vamos a tener tantos consumers como streams nos pidan los clients
+  Si tenemos m producers y los consumen los n clients, tenemos
+  m*n consumers. Si el client no quiere lo que produce, tenemos m*n - n*(1 o 2)
+*/
+
+/*
+  Map of participants indexed by id. Each Object has:
+  - {String} id
+  - {Object} data
+    - {String} displayName
+    - {RTCRtpCapabilities} rtpCapabilities
+    - {Map<String, mediasoup.Transport>} transports
+    - {Map<String, mediasoup.Producer>} producers
+    - {Map<String, mediasoup.Consumers>} consumers
+  @type {Map<String, Object>}
+*/
+let participants = new Map();
 
 // Server https
 let webServer;
@@ -18,29 +51,6 @@ let socketServer;
 // App del framework Express
 let expressApp;
 
-/* 
-  Vamos a tener tantos producers como streams nos pasen los clients 
-  Si tenemos n clients y cada client nos pasa audio y video, tenemos 2n producers
-*/
-let micProducer;
-let videoProducer;
-
-/*
-  Vamos a tener tantos consumers como streams nos pidan los clients
-  Si tenemos m producers y los consumen los n clients, tenemos
-  m*n consumers. Si el client no quiere lo que produce, tenemos m*n - n*(1 o 2)
-*/  
-let micConsumer;
-let videoConsumer;
-
-// Vamos a tener 1 producer transport por client (n)
-let producerTransport;
-
-// Vamos a tener 1 consumer transport por client (n)
-let consumerTransport;
-
-// Vamos a tener (excepto que pasen cosas malas) un router por llamada
-let mediasoupRouter;
 
 // Configuramos las cosas que debe hacer el programa y luego pasará todo con los callbacks que definamos
 (async () => {
@@ -73,7 +83,7 @@ async function runExpressApp() {
     res.statusMessage = error.message;
     res.status(error.status).send(String(error));
     } else {
-    next();
+      next();
     }
   });
 }
@@ -114,9 +124,8 @@ async function runSocketServer() {
     log: false,
   });
 
-  // Todo esto pasará cuando un client se conecte al socket
+  // Todo esto pasará cuando el client se conecte al socket
   socketServer.on('connection', (socket) => {
-    console.log('client connected');
 
     // inform the client about existence of producer
     if (producer) {
@@ -131,15 +140,20 @@ async function runSocketServer() {
       console.error('client connection error', err);
     });
 
-    // Esto es signaling
     socket.on('getRouterRtpCapabilities', (data, callback) => {
       callback(mediasoupRouter.rtpCapabilities);
     });
 
-    socket.on('createProducerTransport', async (data, callback) => {
+    /**
+     * Create Participant:
+     * Se crea un nuevo participante de la reunion con sus correspondientes webRTCtransports
+     * para producir y consumir streams
+     * @param data: 
+    */
+    socket.on('createParticipant', async (data, callback) => {
       try {
-        const { transport, params } = await createWebRtcTransport();
-        producerTransport = transport;
+        const { pId, participant, params } = await createParticipant(data);
+        participants.set(pId, participant);
         callback(params);
       } catch (err) {
         console.error(err);
@@ -147,29 +161,22 @@ async function runSocketServer() {
       }
     });
 
-    socket.on('createConsumerTransport', async (data, callback) => {
-      try {
-        const { transport, params } = await createWebRtcTransport();
-        consumerTransport = transport;
-        callback(params);
-      } catch (err) {
-        console.error(err);
-        callback({ error: err.message });
-      }
-    });
-
-    socket.on('connectProducerTransport', async (data, callback) => {
-      await producerTransport.connect({ dtlsParameters: data.dtlsParameters });
+    /**
+     * Connect Transports:
+     * Conecta los transports remotos de un Participant con los del server
+     * @param data: 
+    */
+    socket.on('connectTransports', async (data, callback) => {
+      await connectTransports(data);
       callback();
     });
 
-    socket.on('connectConsumerTransport', async (data, callback) => {
-      await consumerTransport.connect({ dtlsParameters: data.dtlsParameters });
-      callback();
-    });
-
+    /**
+    *  Produce
+    * 
+    */
     socket.on('produce', async (data, callback) => {
-      // kind indica el tipo de comuniacion, audio o video
+      // kind indica el tipo de comunicacion, audio o video
       const {kind, rtpParameters} = data;
       producer = await producerTransport.produce({ kind, rtpParameters });
       callback({ id: producer.id });
@@ -187,6 +194,22 @@ async function runSocketServer() {
       callback();
     });
   });
+}
+
+async function createParticipant(data) {
+
+  return {
+    id,
+    participant,
+    params: {
+
+    }
+  }
+}
+
+async function connectTransports(data) {
+  await producerTransport.connect({ dtlsParameters: data.dtlsParameters });
+  await consumerTransport.connect({ dtlsParameters: data.dtlsParameters });
 }
 
 async function runMediasoupWorker() {
